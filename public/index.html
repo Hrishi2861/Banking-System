@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlueRock Bank — Customer Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand"><span class="logo">B</span> BlueRock Bank</div>
+      <p class="tagline">Customer Portal — sign in to your accounts</p>
+      <div class="msg hidden" id="msg"></div>
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" autocomplete="username" required autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn" type="submit" style="width:100%" id="loginBtn">Sign In</button>
+      </form>
+      <div class="demo-creds">
+        <strong>Demo customer logins</strong><br>
+        <code>john / john123</code> &nbsp; <code>alice / alice123</code> &nbsp; <code>raj / raj123</code>
+      </div>
+      <p style="text-align:center;margin-top:18px;font-size:13px" class="muted">
+        Bank staff? <a href="/admin-login.html">Go to the Admin Panel</a>
+      </p>
+    </div>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    // Already logged in? Go straight to the right page.
+    fetch('/api/me', { credentials: 'same-origin' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(u => { if (u) location.href = u.role === 'admin' ? '/admin.html' : '/dashboard.html'; });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById('msg');
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      try {
+        const user = await api('/login', {
+          method: 'POST',
+          body: { username: username.value, password: password.value }
+        });
+        location.href = '/dashboard.html';
+      } catch (err) {
+        msg(msgEl, err.message, 'error');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

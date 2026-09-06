@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Database (demo data can be re-created with `npm run seed`)
+data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp

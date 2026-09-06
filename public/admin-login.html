@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlueRock Bank — Admin Panel Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    /* Admin login has its own darker, narrower "back-office" look. */
+    .admin-login-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #111827 0%, #1f2937 50%, #0f172a 100%);
+      padding: 20px;
+    }
+    .admin-login-card {
+      background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
+      border-radius: 16px; padding: 36px; width: 100%; max-width: 400px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    .admin-login-card .brand { color: #fff; justify-content: center; margin-bottom: 4px; }
+    .admin-login-card .logo { background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 6px; }
+    .admin-badge {
+      display: block; width: fit-content; margin: 0 auto 22px; padding: 4px 14px;
+      background: rgba(217, 119, 6, 0.15); color: #fbbf24; border: 1px solid rgba(217, 119, 6, 0.4);
+      border-radius: 999px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1.2px;
+    }
+    .admin-login-card label { color: #94a3b8; }
+    .admin-login-card input {
+      background: #0f172a; border-color: #334155; color: #e2e8f0;
+    }
+    .admin-login-card input:focus { outline: 2px solid rgba(217, 119, 6, 0.3); border-color: #f59e0b; }
+    .admin-login-card .btn { background: #d97706; width: 100%; }
+    .admin-login-card .btn:hover { background: #b45309; }
+    .admin-login-card .tagline { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 26px; }
+    .admin-login-card .switch-link { text-align: center; margin-top: 18px; font-size: 13px; color: #64748b; }
+    .admin-login-card .switch-link a { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <div class="admin-login-wrap">
+    <div class="admin-login-card">
+      <div class="brand"><span class="logo">B</span> BlueRock Bank</div>
+      <span class="admin-badge">Staff Access Only</span>
+      <p class="tagline">Admin Panel — restricted area</p>
+      <div class="msg hidden" id="msg"></div>
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Admin username</label>
+          <input id="username" name="username" autocomplete="username" required autofocus>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn" type="submit" id="loginBtn">Enter Admin Panel</button>
+      </form>
+      <div class="demo-creds" style="background:#0f172a">
+        <strong style="color:#94a3b8">Demo admin login</strong><br>
+        <code>admin / admin123</code>
+      </div>
+      <p class="switch-link">
+        Customer? <a href="/index.html">Go to the Customer Portal</a>
+      </p>
+    </div>
+  </div>
+  <script src="/js/app.js"></script>
+  <script>
+    // Already logged in as an admin? Go straight to the panel.
+    fetch('/api/me', { credentials: 'same-origin' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(u => { if (u) location.href = u.role === 'admin' ? '/admin.html' : '/dashboard.html'; });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById('msg');
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      try {
+        await api('/admin/login', {
+          method: 'POST',
+          body: { username: username.value, password: password.value }
+        });
+        location.href = '/admin.html';
+      } catch (err) {
+        msg(msgEl, err.message, 'error');
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

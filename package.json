@@ -1,0 +1,16 @@
+{
+  "name": "banking-system",
+  "version": "1.0.0",
+  "description": "Banking system website with customer portal and admin panel",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
+  }
+}

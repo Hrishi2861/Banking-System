@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaction History — BlueRock Bank</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="page-title">Transaction History</h1>
+    <p class="page-sub">All activity across your accounts.</p>
+
+    <div class="card">
+      <div class="field" style="max-width:320px">
+        <label for="accountFilter">Account</label>
+        <select id="accountFilter"></select>
+      </div>
+      <div class="table-wrap"><table id="txTable">
+        <thead><tr><th>Date</th><th>Description</th><th>Type</th><th style="text-align:right">Amount</th><th style="text-align:right">Balance after</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="pagination hidden" id="pagination">
+        <button class="btn secondary small" id="prevBtn">← Previous</button>
+        <span id="pageInfo"></span>
+        <button class="btn secondary small" id="nextBtn">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    let page = 1;
+    let accountId = null;
+
+    async function load() {
+      const user = await requireUser('customer');
+      renderNavbar(user, 'History');
+      const accounts = await api('/accounts');
+      const filter = document.getElementById('accountFilter');
+      const qsId = Number(new URLSearchParams(location.search).get('account'));
+      filter.innerHTML =
+        '<option value="">All accounts</option>' +
+        accounts.map(a => `<option value="${a.id}" ${a.id === qsId ? 'selected' : ''}>${esc(a.account_number)} — ${esc(a.account_type)}</option>`).join('');
+      accountId = accounts.some(a => a.id === qsId) ? qsId : null;
+      filter.addEventListener('change', () => { accountId = filter.value || null; page = 1; loadTransactions(); });
+      loadTransactions();
+    }
+
+    async function loadTransactions() {
+      const url = accountId ? `/accounts/${accountId}/transactions` : `/accounts/${firstAccountId()}/transactions`;
+      if (!accountId && !firstAccountId()) {
+        document.querySelector('#txTable tbody').innerHTML = '<tr><td colspan="5" class="muted">No accounts yet.</td></tr>';
+        return;
+      }
+      const data = await api(`${url}?page=${page}&limit=15`);
+      document.querySelector('#txTable tbody').innerHTML = data.transactions.map(t => `
+        <tr>
+          <td>${fmtDate(t.created_at)}</td>
+          <td>${esc(t.description)}</td>
+          <td><span class="badge ${t.type}">${t.type.replace('_', ' ')}</span></td>
+          <td style="text-align:right" class="${t.type === 'deposit' || t.type === 'transfer_in' ? 'amount-pos' : 'amount-neg'}">
+            ${t.type === 'deposit' || t.type === 'transfer_in' ? '+' : '−'}${fmtMoney(t.amount)}
+          </td>
+          <td style="text-align:right">${fmtMoney(t.balance_after)}</td>
+        </tr>`).join('') || '<tr><td colspan="5" class="muted">No transactions yet.</td></tr>';
+
+      const p = document.getElementById('pagination');
+      if (data.total_pages > 1) {
+        p.classList.remove('hidden');
+        document.getElementById('pageInfo').textContent = `Page ${data.page} of ${data.total_pages}`;
+        document.getElementById('prevBtn').disabled = page <= 1;
+        document.getElementById('nextBtn').disabled = page >= data.total_pages;
+      } else {
+        p.classList.add('hidden');
+      }
+    }
+
+    let _accounts = null;
+    function firstAccountId() {
+      return _accounts ? _accounts[0]?.id : null;
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => { page--; loadTransactions(); });
+    document.getElementById('nextBtn').addEventListener('click', () => { page++; loadTransactions(); });
+
+    // Cache accounts for the "all accounts" fallback.
+    fetch('/api/accounts', { credentials: 'same-origin' })
+      .then(r => r.json())
+      .then(a => { _accounts = a; });
+
+    load();
+  </script>
+</body>
+</html>

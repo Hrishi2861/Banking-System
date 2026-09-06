@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — BlueRock Bank</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .tabs { display: flex; gap: 4px; margin-bottom: 22px; border-bottom: 2px solid var(--border); }
+    .tabs button {
+      background: none; border: none; padding: 10px 18px; font-size: 14px; font-weight: 600;
+      color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px;
+      font-family: inherit;
+    }
+    .tabs button.active { color: var(--blue); border-bottom-color: var(--blue); }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width:1100px">
+    <h1 class="page-title">Admin Panel</h1>
+    <p class="page-sub">Bank-wide overview of customers, accounts and transactions.</p>
+    <div class="msg hidden" id="msg"></div>
+
+    <div class="tabs">
+      <button data-tab="overview" class="active">Overview</button>
+      <button data-tab="applications">Applications <span id="pendingBadge"></span></button>
+      <button data-tab="customers">Customers</button>
+      <button data-tab="accounts">Accounts</button>
+      <button data-tab="transactions">Transactions</button>
+    </div>
+
+    <div id="tab-overview">
+      <div class="grid cols-3" id="statsGrid"></div>
+    </div>
+
+    <div id="tab-applications" class="hidden">
+      <div class="card">
+        <h3>Account applications</h3>
+        <div class="table-wrap"><table id="appsTable">
+          <thead><tr><th>Applied on</th><th>Customer</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div id="tab-customers" class="hidden">
+      <div class="card" style="margin-bottom:18px">
+        <h3>Add customer</h3>
+        <form id="addCustomerForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end">
+          <div><label>Full name</label><input id="cName" required></div>
+          <div><label>Username</label><input id="cUsername" required></div>
+          <div><label>Password</label><input id="cPassword" type="text" required></div>
+          <div><label>Email</label><input id="cEmail" type="email" required></div>
+          <div><label>Account type</label>
+            <select id="cAccType"><option value="savings">Savings</option><option value="checking">Checking</option></select>
+          </div>
+          <button class="btn" type="submit">Create</button>
+        </form>
+      </div>
+      <div class="card">
+        <h3>All customers</h3>
+        <div class="table-wrap"><table id="customersTable">
+          <thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Email</th><th>Accounts</th><th style="text-align:right">Total balance</th><th>Joined</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div id="tab-accounts" class="hidden">
+      <div class="card">
+        <h3>All accounts</h3>
+        <div class="table-wrap"><table id="accountsTable">
+          <thead><tr><th>Account number</th><th>Owner</th><th>Type</th><th style="text-align:right">Balance</th><th>Opened</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div id="tab-transactions" class="hidden">
+      <div class="card">
+        <h3>Recent bank-wide transactions</h3>
+        <div class="table-wrap"><table id="adminTxTable">
+          <thead><tr><th>Date</th><th>Customer</th><th>Account</th><th>Description</th><th>Type</th><th style="text-align:right">Amount</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <div class="pagination" id="pagination">
+          <button class="btn secondary small" id="prevBtn">← Previous</button>
+          <span id="pageInfo"></span>
+          <button class="btn secondary small" id="nextBtn">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    let txPage = 1;
+
+    async function load() {
+      const user = await requireUser('admin');
+      renderNavbar(user, 'Dashboard');
+      const tab = new URLSearchParams(location.search).get('tab');
+      if (tab) switchTab(tab);
+      loadOverview();
+      loadCustomers();
+      loadAccounts();
+      loadAdminTx();
+      loadApplications();
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      ['overview', 'applications', 'customers', 'accounts', 'transactions'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('hidden', t !== name);
+      });
+    }
+    document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+    async function loadOverview() {
+      const s = await api('/admin/stats');
+      document.getElementById('pendingBadge').innerHTML = s.pending_applications > 0
+        ? `<span class="badge pending">${s.pending_applications}</span>` : '';
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="card stat"><div class="stat-label">Customers</div><div class="stat-value">${s.customers}</div></div>
+        <div class="card stat"><div class="stat-label">Accounts</div><div class="stat-value">${s.accounts}</div></div>
+        <div class="card stat"><div class="stat-label">Pending applications</div><div class="stat-value">${s.pending_applications}</div></div>
+        <div class="card stat"><div class="stat-label">Total deposits</div><div class="stat-value">${fmtMoney(s.total_deposits)}</div></div>
+        <div class="card stat"><div class="stat-label">Total withdrawals</div><div class="stat-value">${fmtMoney(s.total_withdrawals)}</div></div>
+        <div class="card stat"><div class="stat-label">Total transfers</div><div class="stat-value">${fmtMoney(s.total_transfers)}</div></div>
+        <div class="card stat"><div class="stat-label">Bank-wide balance</div><div class="stat-value">${fmtMoney(s.total_balance)}</div></div>`;
+    }
+
+    async function loadApplications() {
+      const apps = await api('/admin/applications');
+      document.querySelector('#appsTable tbody').innerHTML = apps.map(a => `
+        <tr>
+          <td>${fmtDate(a.created_at)}</td>
+          <td>${esc(a.full_name)} <span class="muted">(${esc(a.username)})</span></td>
+          <td><span class="badge ${a.account_type}">${a.account_type}</span></td>
+          <td><span class="badge ${a.status}">${a.status}</span>${a.rejection_reason ? `<div class="muted" style="font-size:12px;margin-top:4px">${esc(a.rejection_reason)}</div>` : ''}</td>
+          <td>${a.status === 'pending' ? `
+            <button class="btn small" onclick="approveApp(${a.id})">Approve</button>
+            <button class="btn small" style="background:var(--red)" onclick="rejectApp(${a.id})">Reject</button>` : '—'}
+          </td>
+        </tr>`).join('') || '<tr><td colspan="5" class="muted">No applications yet.</td></tr>';
+    }
+
+    async function approveApp(id) {
+      const msgEl = document.getElementById('msg');
+      try {
+        await api(`/admin/applications/${id}/approve`, { method: 'POST' });
+        msg(msgEl, 'Application approved — account created.', 'success');
+        setTimeout(() => msgEl.classList.add('hidden'), 4000);
+        loadApplications(); loadAccounts(); loadOverview();
+      } catch (err) {
+        msg(msgEl, err.message, 'error');
+      }
+    }
+
+    async function rejectApp(id) {
+      const reason = prompt('Reason for rejection (optional):') || '';
+      const msgEl = document.getElementById('msg');
+      try {
+        await api(`/admin/applications/${id}/reject`, { method: 'POST', body: { reason } });
+        msg(msgEl, 'Application rejected.', 'success');
+        setTimeout(() => msgEl.classList.add('hidden'), 4000);
+        loadApplications(); loadOverview();
+      } catch (err) {
+        msg(msgEl, err.message, 'error');
+      }
+    }
+
+    async function loadCustomers() {
+      const rows = await api('/admin/customers');
+      document.querySelector('#customersTable tbody').innerHTML = rows.map(c => `
+        <tr>
+          <td>${c.id}</td>
+          <td>${esc(c.full_name)}</td>
+          <td>${esc(c.username)}</td>
+          <td>${esc(c.email)}</td>
+          <td>${c.account_count}</td>
+          <td style="text-align:right">${fmtMoney(c.total_balance)}</td>
+          <td class="muted">${fmtDate(c.created_at).split(' ')[0]}</td>
+        </tr>`).join('');
+    }
+
+    async function loadAccounts() {
+      const rows = await api('/admin/accounts');
+      document.querySelector('#accountsTable tbody').innerHTML = rows.map(a => `
+        <tr>
+          <td style="font-family:monospace">${esc(a.account_number)}</td>
+          <td>${esc(a.full_name)}</td>
+          <td><span class="badge ${a.account_type}">${a.account_type}</span></td>
+          <td style="text-align:right">${fmtMoney(a.balance)}</td>
+          <td class="muted">${fmtDate(a.created_at).split(' ')[0]}</td>
+        </tr>`).join('');
+    }
+
+    async function loadAdminTx() {
+      const data = await api(`/admin/transactions?page=${txPage}&limit=15`);
+      document.querySelector('#adminTxTable tbody').innerHTML = data.transactions.map(t => `
+        <tr>
+          <td>${fmtDate(t.created_at)}</td>
+          <td>${esc(t.full_name)}</td>
+          <td style="font-family:monospace">${esc(t.account_number)}</td>
+          <td>${esc(t.description)}</td>
+          <td><span class="badge ${t.type}">${t.type.replace('_', ' ')}</span></td>
+          <td style="text-align:right">${fmtMoney(t.amount)}</td>
+        </tr>`).join('');
+      const p = document.getElementById('pagination');
+      if (data.total_pages > 1) {
+        p.style.display = 'flex';
+        document.getElementById('pageInfo').textContent = `Page ${data.page} of ${data.total_pages}`;
+        document.getElementById('prevBtn').disabled = txPage <= 1;
+        document.getElementById('nextBtn').disabled = txPage >= data.total_pages;
+      } else {
+        p.style.display = 'none';
+      }
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => { txPage--; loadAdminTx(); });
+    document.getElementById('nextBtn').addEventListener('click', () => { txPage++; loadAdminTx(); });
+
+    document.getElementById('addCustomerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById('msg');
+      try {
+        await api('/admin/customers', {
+          method: 'POST',
+          body: {
+            full_name: cName.value.trim(),
+            username: cUsername.value.trim(),
+            password: cPassword.value,
+            email: cEmail.value.trim(),
+            account_type: cAccType.value
+          }
+        });
+        msg(msgEl, 'Customer created with a new account.', 'success');
+        e.target.reset();
+        loadCustomers(); loadAccounts(); loadOverview();
+      } catch (err) {
+        msg(msgEl, err.message, 'error');
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>

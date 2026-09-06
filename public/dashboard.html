@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — BlueRock Bank</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="page-title">My Accounts</h1>
+    <p class="page-sub" id="welcome"></p>
+    <div class="msg hidden" id="msg"></div>
+
+    <div class="grid cols-2" id="accountsGrid"></div>
+
+    <div class="card mt">
+      <h3>Apply for a new account</h3>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:180px">
+          <label for="newAccType">Account type</label>
+          <select id="newAccType">
+            <option value="savings">Savings</option>
+            <option value="checking">Checking</option>
+          </select>
+        </div>
+        <button class="btn" id="applyBtn">Submit Application</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:12px">
+        New accounts require approval by bank staff. Track the status below — once approved,
+        the account appears in your dashboard automatically.
+      </p>
+    </div>
+
+    <div class="card mt">
+      <h3>My applications</h3>
+      <div class="table-wrap"><table id="appsTable">
+        <thead><tr><th>Applied on</th><th>Account type</th><th>Status</th><th>Note</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </div>
+
+    <div class="card mt">
+      <h3>Recent transactions</h3>
+      <div class="table-wrap"><table id="recentTxTable">
+        <thead><tr><th>Date</th><th>Account</th><th>Description</th><th>Type</th><th style="text-align:right">Amount</th><th style="text-align:right">Balance</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="mt"><a href="/transactions.html">View all transactions →</a></p>
+    </div>
+  </div>
+
+  <!-- Deposit / Withdraw modal -->
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <div class="modal">
+      <h4 id="modalTitle"></h4>
+      <div class="field">
+        <label>Amount (₹)</label>
+        <input type="number" id="modalAmount" min="1" step="0.01" required>
+      </div>
+      <div class="field">
+        <label>Description (optional)</label>
+        <input type="text" id="modalDesc" maxlength="100">
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" id="modalCancel">Cancel</button>
+        <button class="btn" id="modalSubmit"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    let modalAction = null; // 'deposit' | 'withdraw'
+    let modalAccountId = null;
+    let accounts = [];
+
+    async function load() {
+      const user = await requireUser('customer');
+      renderNavbar(user, 'Dashboard');
+      document.getElementById('welcome').textContent = `Welcome back, ${user.full_name}`;
+      accounts = await api('/accounts');
+      renderAccounts();
+      renderRecent();
+      renderApplications();
+    }
+
+    async function renderApplications() {
+      const apps = await api('/applications');
+      const tbody = document.querySelector('#appsTable tbody');
+      tbody.innerHTML = apps.map(a => `
+        <tr>
+          <td>${fmtDate(a.created_at)}</td>
+          <td><span class="badge ${a.account_type}">${a.account_type}</span></td>
+          <td><span class="badge ${a.status}">${a.status}</span></td>
+          <td class="muted">${a.status === 'rejected' ? esc(a.rejection_reason || 'Application rejected by bank staff') : a.status === 'approved' ? 'Account opened — see it above' : 'Awaiting review by bank staff'}</td>
+        </tr>`).join('') || '<tr><td colspan="4" class="muted">No applications yet.</td></tr>';
+    }
+
+    function renderAccounts() {
+      const grid = document.getElementById('accountsGrid');
+      if (!accounts.length) {
+        grid.innerHTML = '<div class="card">No accounts yet — open one below to get started.</div>';
+        return;
+      }
+      grid.innerHTML = accounts.map(a => `
+        <div class="account-card">
+          <div class="acc-type">${esc(a.account_type)} account</div>
+          <div class="acc-number">${esc(a.account_number)}</div>
+          <div class="acc-balance">${fmtMoney(a.balance)}</div>
+          <div class="acc-label">Available balance</div>
+          <div class="acc-actions">
+            <button class="btn secondary small" onclick="openModal('deposit', ${a.id})">Deposit</button>
+            <button class="btn secondary small" onclick="openModal('withdraw', ${a.id})">Withdraw</button>
+            <a class="btn secondary small" href="/transactions.html?account=${a.id}">History</a>
+          </div>
+        </div>`).join('');
+    }
+
+    async function renderRecent() {
+      const tbody = document.querySelector('#recentTxTable tbody');
+      if (!accounts.length) { tbody.innerHTML = ''; return; }
+      // Pull the latest page from each account, then merge and take the 8 newest.
+      const all = [];
+      for (const a of accounts) {
+        const { transactions } = await api(`/accounts/${a.id}/transactions?limit=100`);
+        transactions.forEach(t => all.push({ ...t, acc_number: a.account_number }));
+      }
+      all.sort((x, y) => (y.created_at + y.id).localeCompare(x.created_at + x.id));
+      tbody.innerHTML = all.slice(0, 8).map(t => `
+        <tr>
+          <td>${fmtDate(t.created_at)}</td>
+          <td class="muted">${esc(t.acc_number)}</td>
+          <td>${esc(t.description)}</td>
+          <td><span class="badge ${t.type}">${t.type.replace('_', ' ')}</span></td>
+          <td style="text-align:right" class="${t.type === 'deposit' || t.type === 'transfer_in' ? 'amount-pos' : 'amount-neg'}">
+            ${t.type === 'deposit' || t.type === 'transfer_in' ? '+' : '−'}${fmtMoney(t.amount)}
+          </td>
+          <td style="text-align:right">${fmtMoney(t.balance_after)}</td>
+        </tr>`).join('') || '<tr><td colspan="6" class="muted">No transactions yet.</td></tr>';
+    }
+
+    function openModal(action, accountId) {
+      modalAction = action;
+      modalAccountId = accountId;
+      document.getElementById('modalTitle').textContent = action === 'deposit' ? 'Deposit funds' : 'Withdraw funds';
+      document.getElementById('modalSubmit').textContent = action === 'deposit' ? 'Deposit' : 'Withdraw';
+      document.getElementById('modalAmount').value = '';
+      document.getElementById('modalDesc').value = '';
+      document.getElementById('modalBackdrop').classList.remove('hidden');
+      document.getElementById('modalAmount').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').classList.add('hidden');
+    }
+
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+    document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    document.getElementById('modalSubmit').addEventListener('click', async () => {
+      const amount = Number(document.getElementById('modalAmount').value);
+      const description = document.getElementById('modalDesc').value.trim();
+      const msgEl = document.getElementById('msg');
+      try {
+        await api(`/accounts/${modalAccountId}/${modalAction}`, { method: 'POST', body: { amount, description } });
+        closeModal();
+        msg(msgEl, `${modalAction === 'deposit' ? 'Deposit' : 'Withdrawal'} successful.`, 'success');
+        setTimeout(() => msgEl.classList.add('hidden'), 4000);
+        load();
+      } catch (err) {
+        closeModal();
+        msg(msgEl, err.message, 'error');
+      }
+    });
+
+    document.getElementById('applyBtn').addEventListener('click', async () => {
+      const msgEl = document.getElementById('msg');
+      try {
+        await api('/applications', { method: 'POST', body: { account_type: newAccType.value } });
+        msg(msgEl, 'Application submitted — awaiting admin approval.', 'success');
+        setTimeout(() => msgEl.classList.add('hidden'), 4000);
+        renderApplications();
+      } catch (err) {
+        msg(msgEl, err.message, 'error');
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>

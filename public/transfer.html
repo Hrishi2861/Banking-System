@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transfer Money — BlueRock Bank</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container" style="max-width:560px">
+    <h1 class="page-title">Transfer Money</h1>
+    <p class="page-sub">Send money to any BlueRock Bank account instantly.</p>
+    <div class="msg hidden" id="msg"></div>
+
+    <div class="card">
+      <form id="transferForm">
+        <div class="field">
+          <label for="fromAccount">From account</label>
+          <select id="fromAccount" required></select>
+        </div>
+        <div class="field">
+          <label for="toAccount">Destination account number</label>
+          <input id="toAccount" placeholder="e.g. ACCT12345678" required>
+        </div>
+        <div class="field">
+          <label for="amount">Amount (₹)</label>
+          <input id="amount" type="number" min="1" step="0.01" required>
+        </div>
+        <div class="field">
+          <label for="description">Description (optional)</label>
+          <input id="description" maxlength="100" placeholder="What's this for?">
+        </div>
+        <button class="btn" type="submit" style="width:100%" id="transferBtn">Send Money</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    async function load() {
+      const user = await requireUser('customer');
+      renderNavbar(user, 'Transfer');
+      const accounts = await api('/accounts');
+      document.getElementById('fromAccount').innerHTML =
+        accounts.map(a => `<option value="${a.id}">${esc(a.account_number)} — ${esc(a.account_type)} (${fmtMoney(a.balance)})</option>`).join('');
+    }
+
+    document.getElementById('transferForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById('msg');
+      const btn = document.getElementById('transferBtn');
+      btn.disabled = true;
+      try {
+        await api('/transfer', {
+          method: 'POST',
+          body: {
+            from_account_id: Number(fromAccount.value),
+            to_account_number: toAccount.value.trim(),
+            amount: Number(amount.value),
+            description: description.value.trim()
+          }
+        });
+        msg(msgEl, 'Transfer completed successfully.', 'success');
+        e.target.reset();
+        load();
+      } catch (err) {
+        msg(msgEl, err.message, 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    load();
+  </script>
+</body>
+</html>
