@@ -15,6 +15,10 @@ Built as a self-contained demo project: no external services required, everythin
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/HTML)
 [![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/CSS)
+[![React Native](https://img.shields.io/badge/React_Native-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
+[![pm2](https://img.shields.io/badge/pm2-2B037A?style=for-the-badge&logo=pm2&logoColor=white)](https://pm2.keymetrics.io/)
+[![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=black)](https://www.android.com/)
 
 | Layer | Technology | Purpose |
 |---|---|---|
@@ -23,6 +27,10 @@ Built as a self-contained demo project: no external services required, everythin
 | Database | [SQLite](https://www.sqlite.org/) via [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) | Persistent, file-based storage (`data/bank.db`) — survives restarts |
 | Auth | [express-session](https://github.com/expressjs/session) + Node `crypto.scrypt` | Cookie sessions, salted password hashing, role-based access |
 | Frontend | Vanilla HTML / CSS / JavaScript | Zero build step — pages served directly by Express |
+| Mobile | [React Native](https://reactnative.dev/) + [Expo](https://expo.dev/) | Android customer app (`android-app/`) — same REST API, web-matching theme, cloud/LAN server picker |
+| Mobile build | Gradle + Android SDK (`expo prebuild`) | Signed release APK, distributed via the server and [GitHub Releases](https://github.com/Hrishi2861/Banking-System/releases) |
+| Process manager | [pm2](https://pm2.keymetrics.io/) | Keeps the server running on the VPS across restarts |
+| Rate limiting | [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit) | Brute-force protection on login endpoints (10 attempts / 15 min / IP) |
 
 ## Features
 
