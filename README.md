@@ -76,6 +76,23 @@ Then open:
 
 > Customer credentials are rejected on the admin panel and vice-versa.
 
+## Deployment
+
+The server is **deployed on a VPS** under pm2 (restart-safe) and reachable at:
+
+- **Customer portal:** http://169.58.66.151:3000
+- **Admin panel:** http://169.58.66.151:3000/admin
+
+The same instance serves **LAN clients** too — it binds all interfaces, so any device on the server's local network can use `http://<LAN-IP>:3000`. Login endpoints are rate-limited (10 attempts / 15 min / IP). Plain HTTP by decision — HTTPS requires a domain (tracked in [`UPDATES.md`](./UPDATES.md)).
+
+## Android App 📱
+
+A React Native (Expo) customer app with full feature parity to the web portal — see [`android-app/`](./android-app/) for details.
+
+**Install:** download the signed APK straight from the server — **http://169.58.66.151:3000/downloads/BlueRockBank.apk** — then open it on the phone and allow "install unknown apps".
+
+The app offers **two server options** (login screen → ⚙ Server): **☁ Cloud (VPS)**, default, or **🏠 LAN** with an editable URL — switchable without a rebuild. Its theme mirrors the web portal exactly (same palette, navy-gradient account cards, badges).
+
 ## Project Structure
 
 ```
@@ -95,6 +112,7 @@ banking-system/
 │   ├── css/style.css         # Shared styles
 │   └── js/app.js             # Shared helpers (api fetch, auth guards, navbar, formatting)
 ├── test-browser.js   # Headless-Chrome end-to-end tests (puppeteer-core)
+├── android-app/      # React Native (Expo) customer app + APK build (see android-app/README.md)
 ├── data/bank.db      # SQLite database (gitignored, created by `npm run seed`)
 └── package.json
 ```

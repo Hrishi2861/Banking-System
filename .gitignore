@@ -4,6 +4,9 @@ node_modules/
 # Database (demo data can be re-created with `npm run seed`)
 data/
 
+# Release APK served by the server (rebuild: see android-app/README.md)
+public/downloads/
+
 # Logs
 *.log
 npm-debug.log*

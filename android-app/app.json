@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "BlueRock Bank",
+    "slug": "bluerock-bank",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0b2a4a"
+    },
+    "android": {
+      "package": "com.bluerock.bank",
+      "usesCleartextTraffic": true
+    }
+  }
+}

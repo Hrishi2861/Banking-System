@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const rateLimit = require('express-rate-limit');
 const db = require('./db');
 const { verifyPassword, genAccountNumber, findUserByUsername, getUserById, transferMoney } = require('./auth');
 
@@ -17,6 +18,18 @@ app.use(
     cookie: { httpOnly: true, sameSite: 'lax', maxAge: 1000 * 60 * 60 * 8 }
   })
 );
+
+// Login endpoints are exposed on a public IP, so throttle brute-force
+// attempts: 10 tries per IP per 15 minutes (see UPDATES.md deployment notes).
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Try again in 15 minutes.' }
+});
+app.use('/api/login', loginLimiter);
+app.use('/api/admin/login', loginLimiter);
 
 // ---------- helpers ----------
 
