@@ -60,6 +60,8 @@ A React Native (Expo) client reusing the existing REST API, built exactly per th
 
 **http://169.58.66.151:3000/downloads/BlueRockBank.apk**
 
+> **Update (2026-09-07) — v1.2.0:** the app now ships with a custom **BlueRock-branded launcher icon** — adaptive icon with foreground/background layers plus a themed **monochrome** variant (Android 13+) across all densities, replacing the default Expo icon. The signed APK was rebuilt with the new icon and re-released (`v1.2.0` on GitHub Releases; the server copy above refreshed).
+
 - Built locally on the VPS (Android SDK at `/opt/android-sdk`, `expo prebuild` + `gradlew assembleRelease`, ~10 min).
 - Signed with the release keystore (`/root/APK-Signature/hrishi.jks`, alias `key0`); credentials live in the **gitignored** `android-app/android/keystore.properties`, read by `android/app/build.gradle` (falls back to debug signing without it).
 - Install: open the link on the phone, download, allow "install unknown apps".

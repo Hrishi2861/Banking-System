@@ -56,6 +56,7 @@ Release signing uses the keystore at `/root/APK-Signature/hrishi.jks` (alias `ke
 
 Full parity with the customer portal:
 
+- **Custom BlueRock launcher icon** — adaptive icon (foreground/background layers) plus themed **monochrome** (Android 13+) and legacy round/square PNGs across all densities; replaces the default Expo icon
 - Login / logout (customer sessions)
 - Dashboard: navy-gradient account cards, balances, recent activity with type badges
 - Deposits & withdrawals (server-side validation: positive amounts, no overdraft, ₹1,00,000 single-deposit cap)

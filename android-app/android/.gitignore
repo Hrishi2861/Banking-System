@@ -17,3 +17,4 @@ local.properties
 
 # Release signing credentials (keep on build machine only)
 keystore.properties
+local.properties

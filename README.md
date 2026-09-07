@@ -101,6 +101,8 @@ A React Native (Expo) customer app with full feature parity to the web portal �
 
 The app offers **two server options** (login screen → ⚙ Server): **☁ Cloud (VPS)**, default, or **🏠 LAN** with an editable URL — switchable without a rebuild. Its theme mirrors the web portal exactly (same palette, navy-gradient account cards, badges).
 
+Since v1.2.0 the app ships with a custom **BlueRock-branded launcher icon** — an adaptive icon with foreground/background layers plus a themed **monochrome** variant (Android 13+ themed icons), matching the web palette.
+
 ## Project Structure
 
 ```

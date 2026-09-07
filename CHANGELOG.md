@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-09-07
+
+Custom branding for the Android app — new launcher icon and refreshed signed release.
+
+### Added — Android App (`android-app/`)
+- **Custom BlueRock launcher icon** replacing the default Expo icon: adaptive icon with dedicated foreground/background layers and a themed **monochrome** variant (Android 13+ themed icons), plus updated legacy `ic_launcher` / `ic_launcher_round` PNGs across all densities (`mdpi` → `xxxhdpi`)
+- Signed release APK rebuilt with the new icon and released as **`BlueRockBank.apk`** (served by the server and on GitHub Releases)
+
 ## [1.1.0] — 2026-09-07
 
 Deployment, mobile app, and public-exposure hardening.
